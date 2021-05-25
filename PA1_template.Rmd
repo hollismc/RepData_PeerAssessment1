@@ -1,25 +1,99 @@
----
-title: "Reproducible Research: Peer Assessment 1"
-output: 
-  html_document:
-    keep_md: true
----
+Project One Reproducible Research 
+=================================
+**Load Libraries**
+```{r, echo=TRUE}
+library(knitr)
+library(tidyverse)
+```
+**Load data and Remove NA values**    
+```{r, echo=TRUE}
+activity <- read.csv("activity.csv", header = TRUE, sep = ",")
+activity_1 <- activity[complete.cases(activity), ]
+summary(activity_1) 
+str(activity_1)
+```
+**Find the Mean and median number of steps taken each day**  
+```{r, echo=TRUE}
+perday <- group_by(activity_1, date)
+stepsperday <- summarise(perday, total = sum(steps))
+stepsperday
+```
+**Histogram of the total number of steps taken each day**  
+```{r, echo=TRUE}
+stepsPerDay <- with(activity_1, tapply(steps, date, FUN=sum))
+hist(stepsPerDay, 
+     col="blue",
+     main = "Total number of steps per day", 
+     xlab = "Total number of steps")
+summary(stepsperday)
+```
+**Time series plot of the average number of steps taken **  
+```{r, echo=TRUE}
+agg <- aggregate(steps~interval, activity_1, mean)
+plot(agg$interval, agg$steps, type = "l", col = 1, xlab = "Interval", 
+     ylab = "Average Steps", main = "Average Number of Steps Taken")
+```
+**The 5-minute interval that, on average, contains the maximum number of steps **  
+```{r, echo=TRUE}
+rownum <- which.max(agg$steps)
+maxsteps <- agg[rownum, ]$interval
+maxsteps
+```
+**Code to describe and show a strategy for imputing missing data**  
+```{r, echo=TRUE}
+missing <- sum(is.na(activity$steps))
+missing
+```
+**Create new data set imputing NAs**  
+```{r, echo=TRUE}
+getmean <- function(x){
+    agg[agg$interval==x, ]$steps
+}
+activity2 <- activity
+for(i in 1:nrow(activity2)){
+    if(is.na(activity2[i,]$steps)){
+        activity2[i, ]$steps <- getmean(activity2[1, ]$interval)
+    }
+}
+imputesteps <- aggregate(steps ~ date, activity2, sum)
+imputesteps
+```
+**Histogram of the total number of steps taken each day after missing values are imputed**  
+```{r, echo=TRUE}
+hist(imputesteps$steps, 
+     col="blue",
+     main = "total number of steps per day (Imputed)", 
+     xlab = "Steps per day")
+```
+**loop through Date(day) to name all the days**  
+```{r, echo=TRUE}
+day <- weekdays(as.Date(activity2$date))
+days <- vector()
+for (i in 1:nrow(activity2)) {
+    if (day[i] == "Saturday") {
+        days[i] <- "Weekend"
+    } else if (day[i] == "Sunday") {
+        days[i] <- "Weekend"
+    } else {
+        days[i] <- "Weekday"
+    }
+}
+activity$days <- days
+activity$days <- factor(activity$days)
+
+stepsbyday <- aggregate(steps ~ interval + days, data = activity, mean)
+names(stepsbyday) <- c("interval", "days", "steps")
+```
+**Panel plot of average number of steps by days**    
+```{r, echo=TRUE}
+library(lattice)  
+xyplot(steps ~ interval | days, 
+       stepsbyday, 
+       type = "l", 
+       layout = c(2, 1), 
+       xlab = "Interval",
+       ylab = "Avg Number of steps")
+
+```
 
 
-## Loading and preprocessing the data
-
-
-
-## What is mean total number of steps taken per day?
-
-
-
-## What is the average daily activity pattern?
-
-
-
-## Imputing missing values
-
-
-
-## Are there differences in activity patterns between weekdays and weekends?
